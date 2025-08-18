@@ -4,23 +4,29 @@
   <meta charset="utf-8">
   <title>Code Puzzles</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind (CDN) optional, wir nutzen primär eigenes CSS + ein paar Utilities -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body class="bg-slate-50 text-slate-800">
-  <header class="p-4 bg-white shadow">
-    <div class="max-w-5xl mx-auto flex items-center justify-between">
-      <a href="{{ url_for('index') }}" class="font-bold text-xl">Code Puzzles</a>
-      <nav class="space-x-3 text-sm">
-        <a class="hover:underline" href="{{ url_for('random_snippet') }}">🎲 Zufallsaufgabe</a>
-        <a class="hover:underline" href="{{ url_for('index') }}?language=python">Python</a>
-        <a class="hover:underline" href="{{ url_for('index') }}?language=java">Java</a>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+      <a href="{{ url_for('index') }}" class="brand">
+        <span class="dot"></span> <span>Code Puzzles</span>
+      </a>
+      <nav style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="{{ url_for('random_snippet') }}">🎲 Zufallsaufgabe</a>
+        <a class="btn btn-ghost" href="{{ url_for('index') }}?language=python">Python</a>
+        <a class="btn btn-ghost" href="{{ url_for('index') }}?language=java">Java</a>
+        <a class="btn btn-primary" href="{{ url_for('index') }}">Alle</a>
       </nav>
     </div>
   </header>
-  <main class="max-w-5xl mx-auto p-4">
+
+  <main class="container">
     {% block content %}{% endblock %}
   </main>
+
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
