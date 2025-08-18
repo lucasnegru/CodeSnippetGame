@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col md:flex-row gap-6">
+  <section class="md:w-1/4">
+    <div class="bg-white rounded-xl p-4 shadow">
+      <div class="text-xs uppercase tracking-wide text-slate-500">Level {{ snip.level }} • {{ snip.language|capitalize }}</div>
+      <h2 class="font-semibold mt-1">{{ snip.title }}</h2>
+      <p class="text-sm text-slate-700 mt-2 whitespace-pre-line">{{ snip.prompt }}</p>
+      {% if snip.tips %}
+      <details class="mt-3">
+        <summary class="cursor-pointer text-sm text-slate-600">Tipps</summary>
+        <ul class="list-disc ml-5 text-sm mt-2">
+          {% for t in snip.tips %}<li>{{ t }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </div>
+
+    {% if snip.blocks %}
+    <div class="bg-white rounded-xl p-4 shadow mt-4">
+      <h3 class="font-semibold">Bausteine</h3>
+      <div id="blocks" class="flex flex-wrap gap-2 mt-2">
+        {% for b in snip.blocks %}
+        <button type="button" class="chip" data-val='{{ b|tojson }}'>{{ b }}</button>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-slate-500 mt-2">Klicke einen Baustein, um ihn ins aktive Feld zu übernehmen.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="md:w-3/4">
+    <div class="bg-white rounded-xl p-4 shadow">
+      <h3 class="font-semibold">Vervollständige den Code</h3>
+      <pre class="mt-3 bg-slate-950 text-slate-100 p-3 rounded overflow-x-auto"><code>
+{{ snip.code_template | replace("{{", "{ {") | replace("}}", "} }") }}
+      </code></pre>
+
+      <form id="answerForm" class="mt-4">
+        <div class="grid md:grid-cols-2 gap-3">
+          {% for i in gaps %}
+          <label class="text-sm">Feld {{ i }}
+            <input class="field" name="gap{{ i }}" data-index="{{ i }}" placeholder="Antwort für {{ i }}" />
+          </label>
+          {% endfor %}
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button class="px-3 py-2 bg-slate-900 text-white rounded" id="checkBtn">Prüfen</button>
+          <button class="px-3 py-2 border rounded" type="button" id="revealBtn">Lösung anzeigen</button>
+        </div>
+      </form>
+
+      <div id="feedback" class="mt-4"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__SNIP_ID__ = {{ snip.id }};
+window.__SOLUTION__ = {{ snip.solution|tojson }};
+</script>
+{% endblock %}
