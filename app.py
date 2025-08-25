@@ -1,13 +1,55 @@
-import re
+import json
+from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, jsonify
+from sqlalchemy import String, cast
 from models import db, Snippet, Attempt
+import atexit
+import tempfile
+import os
 
-def create_app():
+def create_app(temp_db_path=None):
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///puzzles.db"
+    #Datenbank-URI
+    if temp_db_path is None:
+        # temporäre Datei erstellen
+        fd, temp_db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)  # Datei wird nur von SQLAlchemy genutzt
+        # Datei nach App-Exit löschen
+        atexit.register(lambda: os.remove(temp_db_path) if os.path.exists(temp_db_path) else None)
+
+    app.config["DATA_PATH"] = Path("data/snippets.json")
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{temp_db_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
+    #Datenbank und Snippets initialisieren
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+        if not app.config["DATA_PATH"].exists():
+            raise SystemExit(f"Datendatei fehlt: {app.config["DATA_PATH"].resolve()}")
+
+        data = json.loads(app.config["DATA_PATH"].read_text(encoding="utf-8"))
+        items = [
+            Snippet(
+                title=row["title"],
+                language=row["language"],
+                level=row["level"],
+                prompt=row["prompt"],
+                code_template=row["code_template"],
+                solution=row["solution"],
+                accepted=row.get("accepted"),
+                blocks=row.get("blocks"),
+                tips=row.get("tips"),
+                tags=row.get("tags"),
+            )
+            for row in data
+        ]
+        db.session.add_all(items)
+        db.session.commit()
+
+    #Routes
     @app.route("/")
     def index():
         lang = request.args.get("language")
@@ -19,9 +61,8 @@ def create_app():
         if level:
             q = q.filter_by(level=level)
         if tag:
-            # einfache Filterung über JSON: enthält tag als Substring im serialisierten Feld
-            q = q.filter(Snippet.tags.like(f'%"{tag}"%'))
-        snippets = q.order_by(Snippet.level.asc(), Snippet.id.asc()).all()
+            q = q.filter(cast(Snippet.tags, String).like(f'%"{tag}"%'))
+        snippets = q.order_by(getattr(Snippet, "level").asc(),Snippet.id.asc()).all()
         return render_template("index.html", snippets=snippets, lang=lang, level=level, tag=tag)
 
     @app.route("/snippet/<int:sid>")
@@ -48,20 +89,22 @@ def create_app():
     @app.post("/check/<int:sid>")
     def check(sid):
         snip = Snippet.query.get_or_404(sid)
-        user_answers = request.json.get("answers", [])
+        data = request.get_json(silent=True) or {}
+        user_answers = data.get("answers", [])
 
+        # hier kann deine Normierungs-Logik bleiben...
+        # Beispiel:
+        from re import sub, fullmatch
         def norm(s: str) -> str:
             s = (s or "").strip()
-            s = re.sub(r"\s+", " ", s)
-            # vereinheitliche einfache/doppelte Quotes für string-literals
+            s = sub(r"\s+", " ", s)
             if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
                 inner = s[1:-1]
-                return f"\"{inner}\""
+                return f'"{inner}"'
             return s
 
         target = snip.solution or []
         accepted = snip.accepted or [None] * len(target)
-
         results = []
         all_ok = True
 
@@ -70,40 +113,33 @@ def create_app():
             ua_n = norm(ua)
             ta_n = norm(ta)
 
-            # akzeptierte Varianten-Liste zusammenbauen
-            pool = [ta]  # immer die Hauptlösung
-            extra = accepted[i-1] if i-1 < len(accepted) and accepted[i-1] is not None else []
+            pool = [ta]
+            extra = accepted[i-1] if i-1 < len(accepted) and accepted[i-1] else []
             if isinstance(extra, list):
                 pool.extend(extra)
-            else:
-                if extra:  # String
-                    pool.append(extra)
+            elif extra:
+                pool.append(extra)
 
             ok = False
-            # Level 1-2: exakte Übereinstimmung (mit Normalisierung) ODER explizite regex via "re:..."
-            # Level 3-4: exakte Übereinstimmung ODER Regex-Match (für alle "re:..." Einträge; außerdem Direkt-Regex bei target erlaubt)
             for patt in pool:
-                patt = patt or ""
-                patt_n = norm(patt)
+                patt_n = norm(patt or "")
                 if ua_n == patt_n:
                     ok = True
                     break
-                # Regex-Einträge: "re:<pattern>"
                 if isinstance(patt, str) and patt.startswith("re:"):
                     regex = patt[3:]
                     try:
-                        if re.fullmatch(regex, ua):
+                        if fullmatch(regex, ua):
                             ok = True
                             break
-                    except re.error:
+                    except Exception:
                         pass
-                # bei Level >=3 kann die Hauptlösung selbst als Regex interpretiert werden, falls gültig
                 if snip.level >= 3 and patt and not patt.startswith("re:"):
                     try:
-                        if re.fullmatch(patt, ua):
+                        if fullmatch(patt, ua):
                             ok = True
                             break
-                    except re.error:
+                    except Exception:
                         pass
 
             results.append({"index": i, "correct": ok, "expected": ta_n, "got": ua_n})
@@ -121,6 +157,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)

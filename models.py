@@ -23,6 +23,18 @@ class Snippet(db.Model):
         CheckConstraint("level >= 1 AND level <= 4", name="level_range"),
     )
 
+    def __init__(self, title, language, level, prompt, code_template, solution, accepted=None, blocks=None, tips=None, tags=None):
+        self.title = title
+        self.language = language
+        self.level = level
+        self.prompt = prompt
+        self.code_template = code_template
+        self.solution = solution
+        self.accepted = accepted
+        self.blocks = blocks
+        self.tips = tips
+        self.tags = tags
+
 class Attempt(db.Model):
     __tablename__ = "attempts"
     id = db.Column(db.Integer, primary_key=True)
@@ -30,3 +42,8 @@ class Attempt(db.Model):
     user_answer = db.Column(JSON, nullable=False)
     is_correct = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    def __init__(self, snippet_id, user_answer, is_correct=False):
+        self.snippet_id = snippet_id
+        self.user_answer = user_answer
+        self.is_correct = is_correct
