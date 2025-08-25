@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, and_
 from sqlalchemy.types import JSON  # generischer JSON-Typ, funktioniert mit SQLite als TEXT-Fallback
 
 db = SQLAlchemy()
@@ -47,3 +47,10 @@ class Attempt(db.Model):
         self.snippet_id = snippet_id
         self.user_answer = user_answer
         self.is_correct = is_correct
+
+    @staticmethod
+    def is_completed(sid: int) -> bool:
+        return db.session.query(Attempt.id).filter_by(
+            snippet_id=sid,
+            is_correct=True
+        ).first() is not None

@@ -63,15 +63,24 @@ def create_app(temp_db_path=None):
         if tag:
             q = q.filter(cast(Snippet.tags, String).like(f'%"{tag}"%'))
         snippets = q.order_by(getattr(Snippet, "level").asc(),Snippet.id.asc()).all()
-        return render_template("index.html", snippets=snippets, lang=lang, level=level, tag=tag)
+           
+        # Add completion info
+        completed = {snip.id: Attempt.is_completed(snip.id) for snip in snippets}
+
+        return render_template("index.html", snippets=snippets, completed=completed,
+                            lang=lang, level=level, tag=tag)
 
     @app.route("/snippet/<int:sid>")
     def snippet_view(sid):
         import re as _re
         snip = Snippet.query.get_or_404(sid)
         gaps = sorted(set(int(x) for x in _re.findall(r"{{(\d+)}}", snip.code_template)))
-        return render_template("snippet.html", snip=snip, gaps=gaps)
 
+        # Find next snippet (by ID order)
+        next_snip = Snippet.query.filter(Snippet.id > sid).order_by(Snippet.id.asc()).first()
+
+        return render_template("snippet.html", snip=snip, gaps=gaps, next_snip=next_snip)
+    
     @app.route("/random")
     def random_snippet():
         lang = request.args.get("language")
@@ -156,4 +165,4 @@ def create_app(temp_db_path=None):
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+    app.run(use_reloader=False)

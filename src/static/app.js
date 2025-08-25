@@ -1,26 +1,51 @@
 let activeInput = null;
 
+// Lösung und Snippet-ID aus dem DOM auslesen
+const snipDataEl = document.getElementById("snippet-data");
+const SOLUTION = JSON.parse(snipDataEl.dataset.solution || "[]");
+const SNIP_ID = snipDataEl.dataset.snipId;
+
 document.addEventListener("click", e => {
+  // Aktives Input-Feld merken
   if (e.target.matches("input.field")) {
     activeInput = e.target;
   }
+
+  // Lösung einblenden
   if (e.target.matches("#revealBtn")) {
-    const sol = window.__SOLUTION__ || [];
-    document.querySelectorAll("input.field").forEach((inp, idx) => inp.value = sol[idx] ?? "");
+    document.querySelectorAll("input.field").forEach((inp, idx) => inp.value = SOLUTION[idx] ?? "");
   }
+
+  // Baustein in Feld einfügen
   if (e.target.matches(".chip")) {
-    if (activeInput) {
-      const v = JSON.parse(e.target.dataset.val);
-      activeInput.value = v;
-      activeInput.focus();
+    let targetInput = activeInput;
+
+    // Wenn kein aktives Feld, erstes Feld auswählen
+    if (!targetInput) {
+      targetInput = document.querySelector("input.field");
+    }
+
+    if (targetInput) {
+      let val = e.target.dataset.val;
+      try {
+        val = JSON.parse(val);
+      } catch (err) {
+        // val bleibt unverändert
+      }
+      targetInput.value = val;
+      targetInput.focus();
+      activeInput = targetInput; // jetzt ist das erste Feld aktiv
     }
   }
+
+  // Antworten prüfen
   if (e.target.matches("#checkBtn")) {
     e.preventDefault();
     const answers = [...document.querySelectorAll("input.field")]
-      .sort((a,b)=>parseInt(a.dataset.index)-parseInt(b.dataset.index))
+      .sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index))
       .map(inp => inp.value);
-    fetch(`/check/${window.__SNIP_ID__}`, {
+
+    fetch(`/check/${SNIP_ID}`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({answers})
@@ -29,8 +54,12 @@ document.addEventListener("click", e => {
     .then(res => {
       const fb = document.getElementById("feedback");
       fb.innerHTML = "";
+      fb.style.visibility = "visible";
+
       if (res.ok) {
         fb.innerHTML = `<div class="badge-ok">Alles korrekt 🎉</div>`;
+        const nextBtn = document.getElementById("next-task-btn");
+        if (nextBtn) nextBtn.style.display = "inline-block";
       } else {
         const list = res.results.map(r =>
           `<div>Feld ${r.index}: ${r.correct ? 
@@ -40,6 +69,12 @@ document.addEventListener("click", e => {
         fb.innerHTML = `<div class="space-y-1">${list}</div>`;
       }
     });
+  }
+
+  // Nächste Aufgabe Button klick
+  if (e.target.matches("#next-task-btn")) {
+    const url = e.target.dataset.url;
+    if (url) window.location.href = url;
   }
 });
 

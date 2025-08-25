@@ -36,6 +36,10 @@
       <h3 style="font-weight:600;">Vervollständige den Code</h3>
 
       <pre class="codeblock" style="margin-top:.75rem;"><code>{{ snip.code_template | replace("{{", "{ {") | replace("}}", "} }") }}</code></pre>
+      <div id="snippet-data"
+          data-snip-id="{{ snip.id }}"
+          data-solution='{{ snip.solution|tojson }}'>
+      </div>
 
       <form id="answerForm" style="margin-top:.8rem;">
         <div class="grid" style="grid-template-columns: repeat(2, minmax(0,1fr)); gap:.75rem;">
@@ -51,13 +55,15 @@
         </div>
       </form>
 
-      <div id="feedback" style="margin-top:.9rem;"></div>
+      <div id="feedback" style="margin-top:.9rem; visibility:hidden;"></div>
+      {% if next_snip %}
+      <button id="next-task-btn"
+              style="display:none; margin-top:1rem;"
+              data-url="{{ url_for('snippet_view', sid=next_snip.id) }}">
+        Nächste Aufgabe →
+      </button>
+      {% endif %}
     </div>
   </section>
 </div>
-
-<script>
-window.__SNIP_ID__ = {{ snip.id }};
-window.__SOLUTION__ = {{ snip.solution|tojson }};
-</script>
 {% endblock %}

@@ -36,7 +36,12 @@
     <div class="text-muted" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">
       Level {{ s.level }} • {{ s.language|capitalize }}
     </div>
-    <div style="font-weight:700; margin-top:.2rem;">{{ s.title }}</div>
+    <div style="font-weight:700; margin-top:.2rem;">
+      {{ s.title }}
+      {% if completed[s.id] %}
+        <span style="color:green; font-size:.85rem;">✅ erledigt</span>
+      {% endif %}
+    </div>
     <p class="text-muted line-clamp-2" style="margin-top:.35rem;">{{ s.prompt }}</p>
     {% if s.tags %}
       <div style="margin-top:.5rem; display:flex; gap:.4rem; flex-wrap:wrap;">
