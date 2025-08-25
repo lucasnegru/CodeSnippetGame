@@ -17,7 +17,7 @@ def create_app(temp_db_path=None):
         # Datei nach App-Exit löschen
         atexit.register(lambda: os.remove(temp_db_path) if os.path.exists(temp_db_path) else None)
 
-    app.config["DATA_PATH"] = Path("data/snippets.json")
+    app.config["DATA_PATH"] = Path("../data/snippets.json")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{temp_db_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
@@ -92,8 +92,7 @@ def create_app(temp_db_path=None):
         data = request.get_json(silent=True) or {}
         user_answers = data.get("answers", [])
 
-        # hier kann deine Normierungs-Logik bleiben...
-        # Beispiel:
+        #Normierung
         from re import sub, fullmatch
         def norm(s: str) -> str:
             s = (s or "").strip()

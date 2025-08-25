@@ -32,7 +32,8 @@ Dieses Projekt ist eine Sammlung von Aufgaben, bei denen Nutzer Python-Code und 
    pip install -r requirements.txt
 4. Projekt starten
    ```powershell
-   python main.py
+   cd src
+   python app.py
 5. Virtuelle Umgebung deaktivieren (optional)
    ```powershell
    deactivate
