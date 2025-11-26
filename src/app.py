@@ -6,7 +6,7 @@ from models import db, Snippet, Attempt
 import atexit
 import tempfile
 import os
-import re
+from re import sub, fullmatch, findall
 
 
 def create_app(temp_db_path=None):
@@ -20,6 +20,7 @@ def create_app(temp_db_path=None):
         # Datei nach App-Exit löschen
         atexit.register(lambda: os.remove(temp_db_path) if os.path.exists(temp_db_path) else None)
 
+    app.config["DATA_PATH"] = Path("../data")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{temp_db_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
@@ -29,13 +30,12 @@ def create_app(temp_db_path=None):
         db.drop_all()
         db.create_all()
 
-        base_path = Path("../data")
 
         sources = [("ao", "ao_snippets.json"), ("io", "io_snippets.json")]
         items = []
 
         for category, filename in sources:
-            file_path = base_path / filename
+            file_path = app.config["DATA_PATH"] / filename
             if file_path.exists():
                 content = file_path.read_text(encoding="utf-8-sig")
                 data_list = json.loads(content)
@@ -91,7 +91,7 @@ def create_app(temp_db_path=None):
     @app.route("/snippet/<int:sid>")
     def snippet_view(sid):
         snip = Snippet.query.get_or_404(sid)
-        gaps = sorted(set(int(x) for x in re.findall(r"{{(\d+)}}", snip.code_template)))
+        gaps = sorted(set(int(x) for x in findall(r"{{(\d+)}}", snip.code_template)))
 
         # Nächste Aufgabe nur aus gleicher Kategorie
         next_snip = Snippet.query.filter(
@@ -119,7 +119,7 @@ def create_app(temp_db_path=None):
         #Normierung
         def norm(s: str) -> str:
             s = (s or "").strip()
-            s = re.sub(r"\s+", " ", s)
+            s = sub(r"\s+", " ", s)
             if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
                 return f'"{s[1:-1]}"'
             return s
@@ -147,14 +147,20 @@ def create_app(temp_db_path=None):
 
                 if p_str.startswith("re:"):
                     try:
-                        if re.fullmatch(p_str[3:], ua): ok = True; break
+                        if fullmatch(p_str[3:], ua):
+                            ok = True
+                            break
                     except Exception:
                         pass
 
                 if patt and not p_str.startswith("re:"):
                     try:
-                        if ua_n.lower() == p_str.lower(): ok = True; break
-                        if re.fullmatch(p_str, ua): ok = True; break
+                        if ua_n.lower() == p_str.lower():
+                            ok = True
+                            break
+                        if fullmatch(p_str, ua):
+                            ok = True
+                            break
                     except Exception:
                         pass
 
