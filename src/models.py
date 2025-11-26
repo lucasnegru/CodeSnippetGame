@@ -1,15 +1,16 @@
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import CheckConstraint, and_
-from sqlalchemy.types import JSON  # generischer JSON-Typ, funktioniert mit SQLite als TEXT-Fallback
+from sqlalchemy import CheckConstraint
+from sqlalchemy.types import JSON
 
 db = SQLAlchemy()
 
 class Snippet(db.Model):
     __tablename__ = "snippets"
     id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(2), nullable=False, default="ao")
     title = db.Column(db.String(160), nullable=False)
-    language = db.Column(db.String(16), nullable=False)  # "python" | "java"
+    language = db.Column(db.String(16), nullable=True)    # "python" | "java"
     level = db.Column(db.Integer, nullable=False)         # 1..4
     prompt = db.Column(db.Text, nullable=False)
     code_template = db.Column(db.Text, nullable=False)    # mit {{1}}, {{2}} ...
@@ -23,13 +24,14 @@ class Snippet(db.Model):
         CheckConstraint("level >= 1 AND level <= 4", name="level_range"),
     )
 
-    def __init__(self, title, language, level, prompt, code_template, solution, accepted=None, blocks=None, tips=None, tags=None):
+    def __init__(self, title, language, level, prompt, code_template, solution, category="ao", accepted=None, blocks=None, tips=None, tags=None):
         self.title = title
         self.language = language
         self.level = level
         self.prompt = prompt
         self.code_template = code_template
         self.solution = solution
+        self.category = category
         self.accepted = accepted
         self.blocks = blocks
         self.tips = tips
