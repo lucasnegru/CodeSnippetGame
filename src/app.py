@@ -6,9 +6,12 @@ from models import db, Snippet, Attempt
 import atexit
 import tempfile
 import os
+import re
+
 
 def create_app(temp_db_path=None):
     app = Flask(__name__)
+
     #Datenbank-URI
     if temp_db_path is None:
         # temporäre Datei erstellen
@@ -17,7 +20,6 @@ def create_app(temp_db_path=None):
         # Datei nach App-Exit löschen
         atexit.register(lambda: os.remove(temp_db_path) if os.path.exists(temp_db_path) else None)
 
-    app.config["DATA_PATH"] = Path("../data/snippets.json")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{temp_db_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
@@ -27,72 +29,85 @@ def create_app(temp_db_path=None):
         db.drop_all()
         db.create_all()
 
-        if not app.config["DATA_PATH"].exists():
-            raise SystemExit(f"Datendatei fehlt: {app.config["DATA_PATH"].resolve()}")
+        base_path = Path("../data")
 
-        data = json.loads(app.config["DATA_PATH"].read_text(encoding="utf-8"))
-        items = [
-            Snippet(
-                title=row["title"],
-                language=row["language"],
-                level=row["level"],
-                prompt=row["prompt"],
-                code_template=row["code_template"],
-                solution=row["solution"],
-                accepted=row.get("accepted"),
-                blocks=row.get("blocks"),
-                tips=row.get("tips"),
-                tags=row.get("tags"),
-            )
-            for row in data
-        ]
+        sources = [("ao", "ao_snippets.json"), ("io", "io_snippets.json")]
+        items = []
+
+        for category, filename in sources:
+            file_path = base_path / filename
+            if file_path.exists():
+                content = file_path.read_text(encoding="utf-8-sig")
+                data_list = json.loads(content)
+
+                for row in data_list:
+                    # Wenn Template leer, Standardfeld {{1}} setzen
+                    tpl = row.get("code_template")
+                    if not tpl:
+                        tpl = "{{1}}"
+
+                    # Wenn Sprache fehlt, 'general' setzen
+                    lang = row.get("language")
+                    if not lang:
+                        lang = "general"
+
+                    items.append(Snippet(
+                        category=category,
+                        title=row["title"],
+                        language=lang,
+                        level=row["level"],
+                        prompt=row["prompt"],
+                        code_template=tpl,
+                        solution=row["solution"],
+                        accepted=row.get("accepted"),
+                        blocks=row.get("blocks"),
+                        tips=row.get("tips"),
+                        tags=row.get("tags"),
+                    ))
+
         db.session.add_all(items)
         db.session.commit()
 
     #Routes
     @app.route("/")
     def index():
+        cat = request.args.get("category", "ao")
         lang = request.args.get("language")
         level = request.args.get("level", type=int)
         tag = request.args.get("tag")
+
         q = Snippet.query
-        if lang:
-            q = q.filter_by(language=lang)
-        if level:
-            q = q.filter_by(level=level)
-        if tag:
-            q = q.filter(cast(Snippet.tags, String).like(f'%"{tag}"%'))
-        snippets = q.order_by(getattr(Snippet, "level").asc(),Snippet.id.asc()).all()
-           
-        # Add completion info
+        if cat: q = q.filter_by(category=cat)
+        if lang: q = q.filter_by(language=lang)
+        if level: q = q.filter_by(level=level)
+        if tag: q = q.filter(cast(Snippet.tags, String).like(f'%"{tag}"%'))
+
+        snippets = q.order_by(getattr(Snippet, "level").asc(), Snippet.id.asc()).all()
         completed = {snip.id: Attempt.is_completed(snip.id) for snip in snippets}
 
         return render_template("index.html", snippets=snippets, completed=completed,
-                            lang=lang, level=level, tag=tag)
+                               current_cat=cat, lang=lang, level=level, tag=tag)
 
     @app.route("/snippet/<int:sid>")
     def snippet_view(sid):
-        import re as _re
         snip = Snippet.query.get_or_404(sid)
-        gaps = sorted(set(int(x) for x in _re.findall(r"{{(\d+)}}", snip.code_template)))
+        gaps = sorted(set(int(x) for x in re.findall(r"{{(\d+)}}", snip.code_template)))
 
-        # Find next snippet (by ID order)
-        next_snip = Snippet.query.filter(Snippet.id > sid).order_by(Snippet.id.asc()).first()
+        # Nächste Aufgabe nur aus gleicher Kategorie
+        next_snip = Snippet.query.filter(
+            Snippet.id > sid,
+            Snippet.category == snip.category
+        ).order_by(Snippet.id.asc()).first()
 
         return render_template("snippet.html", snip=snip, gaps=gaps, next_snip=next_snip)
     
     @app.route("/random")
     def random_snippet():
-        lang = request.args.get("language")
-        level = request.args.get("level", type=int)
+        cat = request.args.get("category")
         q = Snippet.query
-        if lang:
-            q = q.filter_by(language=lang)
-        if level:
-            q = q.filter_by(level=level)
+        if cat: q = q.filter_by(category=cat)
         snip = q.order_by(db.func.random()).first()
-        if not snip:
-            return redirect(url_for("index"))
+        if not snip: return redirect(url_for("index"))
         return redirect(url_for("snippet_view", sid=snip.id))
 
     @app.post("/check/<int:sid>")
@@ -102,13 +117,11 @@ def create_app(temp_db_path=None):
         user_answers = data.get("answers", [])
 
         #Normierung
-        from re import sub, fullmatch
         def norm(s: str) -> str:
             s = (s or "").strip()
-            s = sub(r"\s+", " ", s)
+            s = re.sub(r"\s+", " ", s)
             if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
-                inner = s[1:-1]
-                return f'"{inner}"'
+                return f'"{s[1:-1]}"'
             return s
 
         target = snip.solution or []
@@ -117,12 +130,10 @@ def create_app(temp_db_path=None):
         all_ok = True
 
         for i, ta in enumerate(target, start=1):
-            ua = user_answers[i-1] if i-1 < len(user_answers) else ""
+            ua = user_answers[i - 1] if i - 1 < len(user_answers) else ""
             ua_n = norm(ua)
-            ta_n = norm(ta)
-
             pool = [ta]
-            extra = accepted[i-1] if i-1 < len(accepted) and accepted[i-1] else []
+            extra = accepted[i - 1] if i - 1 < len(accepted) and accepted[i - 1] else []
             if isinstance(extra, list):
                 pool.extend(extra)
             elif extra:
@@ -130,29 +141,25 @@ def create_app(temp_db_path=None):
 
             ok = False
             for patt in pool:
-                patt_n = norm(patt or "")
-                if ua_n == patt_n:
-                    ok = True
-                    break
-                if isinstance(patt, str) and patt.startswith("re:"):
-                    regex = patt[3:]
+                p_str = str(patt) if patt is not None else ""
+
+                if ua_n == norm(p_str): ok = True; break
+
+                if p_str.startswith("re:"):
                     try:
-                        if fullmatch(regex, ua):
-                            ok = True
-                            break
-                    except Exception:
-                        pass
-                if snip.level >= 3 and patt and not patt.startswith("re:"):
-                    try:
-                        if fullmatch(patt, ua):
-                            ok = True
-                            break
+                        if re.fullmatch(p_str[3:], ua): ok = True; break
                     except Exception:
                         pass
 
-            results.append({"index": i, "correct": ok, "expected": ta_n, "got": ua_n})
-            if not ok:
-                all_ok = False
+                if patt and not p_str.startswith("re:"):
+                    try:
+                        if ua_n.lower() == p_str.lower(): ok = True; break
+                        if re.fullmatch(p_str, ua): ok = True; break
+                    except Exception:
+                        pass
+
+            results.append({"index": i, "correct": ok, "expected": norm(ta), "got": ua_n})
+            if not ok: all_ok = False
 
         att = Attempt(snippet_id=snip.id, user_answer=user_answers, is_correct=all_ok)
         db.session.add(att)

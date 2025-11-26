@@ -1,5 +1,6 @@
 [
   {
+    "type": "AO",
     "title": "Hallo Welt ausgeben",
     "language": "python",
     "level": 1,
@@ -12,6 +13,7 @@
     "tags": ["strings","output"]
   },
   {
+    "type": "AO",
     "title": "Variable setzen",
     "language": "python",
     "level": 1,
@@ -24,6 +26,7 @@
     "tags": ["variables"]
   },
   {
+    "type": "AO",
     "title": "Name drucken",
     "language": "python",
     "level": 1,
@@ -37,6 +40,7 @@
   },
 
   {
+    "type": "AO",
     "title": "Zahlen addieren",
     "language": "python",
     "level": 2,
@@ -49,6 +53,7 @@
     "tags": ["arithmetic"]
   },
   {
+    "type": "AO",
     "title": "Listenindex",
     "language": "python",
     "level": 2,
@@ -61,6 +66,7 @@
     "tags": ["lists","indexing"]
   },
   {
+    "type": "AO",
     "title": "Text und Zahl",
     "language": "python",
     "level": 2,
@@ -74,6 +80,7 @@
   },
 
   {
+    "type": "AO",
     "title": "If-Bedingung",
     "language": "python",
     "level": 3,
@@ -86,6 +93,7 @@
     "tags": ["conditions"]
   },
   {
+    "type": "AO",
     "title": "For-Schleife",
     "language": "python",
     "level": 3,
@@ -98,6 +106,7 @@
     "tags": ["loops","lists"]
   },
   {
+    "type": "AO",
     "title": "Summe ausgeben",
     "language": "python",
     "level": 3,
@@ -111,6 +120,7 @@
   },
 
   {
+    "type": "AO",
     "title": "Funktion add",
     "language": "python",
     "level": 4,
@@ -123,6 +133,7 @@
     "tags": ["functions","arithmetic"]
   },
   {
+    "type": "AO",
     "title": "Dictionary-Zugriff",
     "language": "python",
     "level": 4,
@@ -135,6 +146,7 @@
     "tags": ["dicts"]
   },
   {
+    "type": "AO",
     "title": "List Comprehension",
     "language": "python",
     "level": 4,
@@ -148,6 +160,7 @@
   },
 
   {
+    "type": "AO",
     "title": "Hello in Java",
     "language": "java",
     "level": 1,
@@ -160,6 +173,7 @@
     "tags": ["strings","output"]
   },
   {
+    "type": "AO",
     "title": "int zuweisen",
     "language": "java",
     "level": 1,
@@ -172,6 +186,7 @@
     "tags": ["variables"]
   },
   {
+    "type": "AO",
     "title": "Name ausgeben",
     "language": "java",
     "level": 1,
@@ -185,6 +200,7 @@
   },
 
   {
+    "type": "AO",
     "title": "Summe bilden",
     "language": "java",
     "level": 2,
@@ -197,6 +213,7 @@
     "tags": ["arithmetic"]
   },
   {
+    "type": "AO",
     "title": "Erstes Array-Element",
     "language": "java",
     "level": 2,
@@ -209,6 +226,7 @@
     "tags": ["arrays","indexing"]
   },
   {
+    "type": "AO",
     "title": "String-Länge",
     "language": "java",
     "level": 2,
@@ -222,6 +240,7 @@
   },
 
   {
+    "type": "AO",
     "title": "If-Bedingung Java",
     "language": "java",
     "level": 3,
@@ -234,6 +253,7 @@
     "tags": ["conditions"]
   },
   {
+    "type": "AO",
     "title": "Array iterieren",
     "language": "java",
     "level": 3,
@@ -246,6 +266,7 @@
     "tags": ["arrays","loops"]
   },
   {
+    "type": "AO",
     "title": "String vergleichen",
     "language": "java",
     "level": 3,
@@ -259,6 +280,7 @@
   },
 
   {
+    "type": "AO",
     "title": "Summe einer Methode",
     "language": "java",
     "level": 4,
@@ -271,6 +293,7 @@
     "tags": ["methods","arrays"]
   },
   {
+    "type": "AO",
     "title": "Enhanced for",
     "language": "java",
     "level": 4,
@@ -283,6 +306,7 @@
     "tags": ["loops","arrays"]
   },
   {
+    "type": "AO",
     "title": "StringBuilder benutzen",
     "language": "java",
     "level": 4,

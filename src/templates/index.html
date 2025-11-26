@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
 <h1 style="font-size:1.6rem; font-weight:700; margin-bottom:.5rem;">Aufgaben</h1>
-<p class="text-muted" style="margin-bottom:1rem;">Filtere nach Sprache, Level oder Tag.</p>
+<p class="text-muted" style="margin-bottom:1rem;">Filtere nach Bereich, Sprache, Level oder Tag.</p>
 
 <form method="get" class="card" style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1rem;">
+
+  <div>
+    <label class="text-muted" style="font-size:.85rem; font-weight:bold;">Bereich</label><br>
+    <select name="category" class="field" style="min-width:80px; font-weight:bold; border: 2px solid #ccc;">
+      <option value="ao" {{ 'selected' if current_cat=='ao' else '' }}>AO</option>
+      <option value="io" {{ 'selected' if current_cat=='io' else '' }}>IO</option>
+    </select>
+  </div>
+
   <div>
     <label class="text-muted" style="font-size:.85rem;">Sprache</label><br>
     <select name="language" class="field" style="min-width:180px">
@@ -32,14 +41,20 @@
 
 <div class="grid grid-2">
   {% for s in snippets %}
-  <a href="{{ url_for('snippet_view', sid=s.id) }}" class="card" style="text-decoration:none;color:inherit;">
-    <div class="text-muted" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">
-      Level {{ s.level }} • {{ s.language|capitalize }}
+  <a href="{{ url_for('snippet_view', sid=s.id) }}" class="card"
+     style="text-decoration:none; color:inherit; border-left: 5px solid {{ '#2563eb' if s.category == 'ao' else '#059669' }};">
+
+    <div class="text-muted" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; display:flex; justify-content:space-between;">
+      <span>Level {{ s.level }} • {{ s.language|capitalize }}</span>
+      <span style="font-weight:bold; color: {{ '#2563eb' if s.category == 'ao' else '#059669' }}">
+        {{ s.category|upper }}
+      </span>
     </div>
+
     <div style="font-weight:700; margin-top:.2rem;">
       {{ s.title }}
       {% if completed[s.id] %}
-        <span style="color:green; font-size:.85rem;">✅ erledigt</span>
+        <span style="color:green; font-size:.85rem;">✅</span>
       {% endif %}
     </div>
     <p class="text-muted line-clamp-2" style="margin-top:.35rem;">{{ s.prompt }}</p>
